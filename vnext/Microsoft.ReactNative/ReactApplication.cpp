@@ -103,8 +103,11 @@ void ReactApplication::OnActivated(Windows::ApplicationModel::Activation::IActiv
   if (e.Kind() == Windows::ApplicationModel::Activation::ActivationKind::Protocol) {
     auto protocolActivatedEventArgs{e.as<Windows::ApplicationModel::Activation::ProtocolActivatedEventArgs>()};
     react::uwp::LinkingManagerModule::OpenUri(protocolActivatedEventArgs.Uri());
-    this->OnCreate(e);
+  } else if (e.Kind() == Windows::ApplicationModel::Activation::ActivationKind::ToastNotification) {
+    auto toastActivatedEventArgs{e.as<Windows::ApplicationModel::Activation::ToastActivatedEventArgs>()};
+    react::uwp::LinkingManagerModule::OpenUri("ms-app://foo?" + toastActivatedEventArgs.Argument());
   }
+  this->OnCreate(e);
 }
 
 void ReactApplication::OnLaunched(activation::LaunchActivatedEventArgs const &e_) {
