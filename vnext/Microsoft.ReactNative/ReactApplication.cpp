@@ -103,8 +103,19 @@ void ReactApplication::OnActivated(Windows::ApplicationModel::Activation::IActiv
   if (e.Kind() == Windows::ApplicationModel::Activation::ActivationKind::Protocol) {
     auto protocolActivatedEventArgs{e.as<Windows::ApplicationModel::Activation::ProtocolActivatedEventArgs>()};
     react::uwp::LinkingManagerModule::OpenUri(protocolActivatedEventArgs.Uri());
-    this->OnCreate(e);
   }
+  else if (e.Kind() == Windows::ApplicationModel::Activation::ActivationKind::ToastNotification) {
+      auto toastActivatedEventArgs{ e.as<Windows::ApplicationModel::Activation::ToastNotificationActivatedEventArgs>() };
+      try {
+          Windows::Foundation::Uri u{ toastActivatedEventArgs.Argument() };
+          react::uwp::LinkingManagerModule::OpenUri(u);
+      }
+      catch (...) {
+          // Don't crash, but also don't let the application know what the toast argument was.
+      }
+  }
+
+  this->OnCreate(e);
 }
 
 void ReactApplication::OnLaunched(activation::LaunchActivatedEventArgs const &e_) {
@@ -156,52 +167,55 @@ void ApplyArguments(ReactNative::ReactNativeHost const &host, std::wstring const
 /// </summary>
 /// <param name="e">Details about the launch request and process.</param>
 void ReactApplication::OnCreate(Windows::ApplicationModel::Activation::IActivatedEventArgs const &e) {
+    if (!created) {
+        created = true;
 #if defined _DEBUG
-  if (IsDebuggerPresent()) {
-    this->DebugSettings().EnableFrameRateCounter(TRUE);
+        if (IsDebuggerPresent()) {
+            this->DebugSettings().EnableFrameRateCounter(TRUE);
 
-    SystemNavigationManager::GetForCurrentView().AppViewBackButtonVisibility(AppViewBackButtonVisibility::Visible);
-  }
+            SystemNavigationManager::GetForCurrentView().AppViewBackButtonVisibility(AppViewBackButtonVisibility::Visible);
+        }
 #endif
 
-  bool isPrelaunchActivated = false;
-  if (auto prelauchActivatedArgs = e.try_as<Windows::ApplicationModel::Activation::IPrelaunchActivatedEventArgs>()) {
-    isPrelaunchActivated = prelauchActivatedArgs.PrelaunchActivated();
-  }
+        bool isPrelaunchActivated = false;
+        if (auto prelauchActivatedArgs = e.try_as<Windows::ApplicationModel::Activation::IPrelaunchActivatedEventArgs>()) {
+            isPrelaunchActivated = prelauchActivatedArgs.PrelaunchActivated();
+        }
 
-  hstring args;
-  if (auto lauchActivatedArgs = e.try_as<activation::ILaunchActivatedEventArgs>()) {
-    args = lauchActivatedArgs.Arguments();
-  }
+        hstring args;
+        if (auto lauchActivatedArgs = e.try_as<activation::ILaunchActivatedEventArgs>()) {
+            args = lauchActivatedArgs.Arguments();
+        }
 
-  Frame rootFrame{nullptr};
-  auto content = Window::Current().Content();
-  if (content) {
-    rootFrame = content.try_as<Frame>();
-  }
+        Frame rootFrame{ nullptr };
+        auto content = Window::Current().Content();
+        if (content) {
+            rootFrame = content.try_as<Frame>();
+        }
 
-  // Do not repeat app initialization when the Window already has content,
-  // just ensure that the window is active
-  if (rootFrame == nullptr) {
-    // Create a Frame to act as the navigation context and associate it with
-    // a SuspensionManager key
-    rootFrame = Frame();
+        // Do not repeat app initialization when the Window already has content,
+        // just ensure that the window is active
+        if (rootFrame == nullptr) {
+            // Create a Frame to act as the navigation context and associate it with
+            // a SuspensionManager key
+            rootFrame = Frame();
 
-    rootFrame.NavigationFailed({this, &ReactApplication::OnNavigationFailed});
+            rootFrame.NavigationFailed({ this, &ReactApplication::OnNavigationFailed });
 
-    if (e.PreviousExecutionState() == Windows::ApplicationModel::Activation::ApplicationExecutionState::Terminated) {
-      // Restore the saved session state only when appropriate, scheduling the
-      // final launch steps after the restore is complete
+            if (e.PreviousExecutionState() == Windows::ApplicationModel::Activation::ApplicationExecutionState::Terminated) {
+                // Restore the saved session state only when appropriate, scheduling the
+                // final launch steps after the restore is complete
+            }
+            Window::Current().Content(rootFrame);
+        }
+
+        ApplyArguments(Host(), args.c_str());
+
+        // Nudge the ReactNativeHost to create the instance and wrapping context
+        Host().ReloadInstance();
+
+        Window::Current().Activate();
     }
-    Window::Current().Content(rootFrame);
-  }
-
-  ApplyArguments(Host(), args.c_str());
-
-  // Nudge the ReactNativeHost to create the instance and wrapping context
-  Host().ReloadInstance();
-
-  Window::Current().Activate();
 }
 
 /// <summary>
