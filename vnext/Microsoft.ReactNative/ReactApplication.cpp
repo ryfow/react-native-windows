@@ -28,6 +28,7 @@ using namespace xaml::Navigation;
 namespace winrt::Microsoft::ReactNative::implementation {
 
 ReactApplication::ReactApplication() = default;
+bool created = false;
 
 ReactApplication::ReactApplication(IInspectable const &outer) noexcept : ReactApplication{} {
   // The factory is usually called in the base generated class. We call it here to pass correct
