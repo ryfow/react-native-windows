@@ -1,0 +1,7 @@
+{
+  "type": "prerelease",
+  "comment": "respect --singleproc option on high memory machines",
+  "packageName": "@react-native-windows/cli",
+  "email": "ryan.fowler@singlewire.com",
+  "dependentChangeType": "patch"
+}
